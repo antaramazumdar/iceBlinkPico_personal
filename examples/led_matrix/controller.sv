@@ -23,7 +23,7 @@ module controller (
     logic [2:0] transmit_phase = READ_CH_VALS;
     logic [2:0] next_transmit_phase;
 
-    logic [5:0] pixel_counter = 6'd63;
+    logic [5:0] pixel_counter = 6'd0;
     logic [4:0] frame_counter = 5'd0;
     logic [8:0] transmit_counter = 9'd0;
     logic [19:0] idle_counter = 20'd0;
@@ -43,7 +43,7 @@ module controller (
         next_state = 1'bx;
         unique case (state)
             TRANSMIT_FRAME:
-                if ((pixel_counter == 6'd0) && (transmit_pixel_done))
+                if ((pixel_counter == 6'd63) && (transmit_pixel_done))
                     next_state = IDLE;
                 else
                     next_state = TRANSMIT_FRAME;
@@ -71,7 +71,7 @@ module controller (
 
     always_ff @(negedge clk) begin
         if ((state == TRANSMIT_FRAME) && transmit_pixel_done) begin
-            pixel_counter <= pixel_counter - 1;
+            pixel_counter <= pixel_counter + 1;
         end
     end
 
