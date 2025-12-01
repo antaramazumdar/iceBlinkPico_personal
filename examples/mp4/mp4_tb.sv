@@ -1,18 +1,19 @@
 `timescale 10ns/10ns
-`include "top.sv"
+`include "top copy.sv"
 
 module mp4_tb;
 
     logic clk = 0;
-    logic LED, RGB_R, RGB_G, RGB_B;
+    // logic LED, RGB_R, RGB_G, RGB_B;
 
 
     top u0 (
-        .clk            (clk), 
+        .clk            (clk),
+        .reset          (reset)/*, 
         .LED            (LED), 
         .RGB_R          (RGB_R), 
         .RGB_G          (RGB_G), 
-        .RGB_B          (RGB_B)
+        .RGB_B          (RGB_B)*/
     );
 
     initial begin
