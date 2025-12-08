@@ -25,7 +25,7 @@ module top (
     logic zero, lt_signed, lt_unsigned;
 
     // extend unit
-    //logic [31:7] instr;
+    logic [31:0] instr;
     logic [2:0]  immsrc;
     logic [31:0] immext;
     
@@ -51,55 +51,60 @@ module top (
     logic [31:0] Mem_reg;            // latched memory read data
     logic [31:0] ALUOut;             // latched ALU result used as branch target
     logic [31:0] pc_plus_4_reg;      // latched pc+4 (for JAL/JALR writeback)
-
+    logic [31:0] OldPC;              // holds initial PC
 
     // instruction for decoder
-    // make instr an explicit-width slice (bits 31:7 -> 25 bits)
-    logic [24:0] instr;
-    assign instr = IR[31:7];
+    assign instr = IR;
 
     // connecting memory
-    assign imem_address = pc; // gives instruction memory address to pc
+    assign imem_address = pc;
+
+    //assign imem_address = pc; // gives instruction memory address to pc
     assign dmem_address = ALUResult_reg; // gives alu result to data memory address
     assign dmem_data_in = B_reg; // for stores, B register data must be written into the data mem input
     
     
     // storing and remembering state 
     always_ff @(posedge clk) begin 
+        if (PCWrite) begin
+            pc <= pc_next;
+        end
+
         if (IRWrite)
             IR <= imem_data_out;
     
         if (state_out == 3'b000) begin 
             pc_plus_4_reg <= pc + 32'd4;
+            OldPC <= pc;
         end
     
         if (state_out == 3'b001) begin
             A_reg <= rs1_data;
             B_reg <= rs2_data;
             Imm_reg <= immext; 
-            ALUOut <= ALUResult;
+            ALUOut <= pc + immext;
+            if (opcode==7'b0010111) begin 
+                ALUOut <= OldPC + immext;
+            end
         end
 
-        if (state_out == 3'b010) begin // EXECUTE
+        if (state_out == 3'b010) begin
             ALUResult_reg <= ALUResult;
-            ALUOut <= ALUResult;
+            if ((opcode==7'b1100111)) begin
+                ALUOut <= ALUResult;       // JALR: rs1+imm
+            end
         end
 
-        // MEMORY: latch memory read data
+
         if (state_out == 3'b011) begin // MEMORY
             Mem_reg <= dmem_data_out;
-        end
-
-        // PC update: update PC on posedge when control asserts PCWrite
-        if (PCWrite) begin
-            pc <= pc_next;
         end
 
     end
 
     // Multiplexers
 
-    // MUX ALUSrcA - selects betRegWriteen PC and A register
+    // MUX ALUSrcA - selects between PC and A register
     always_comb begin
         unique case (ALUSrcA)
             2'b00: SrcA = pc;
@@ -110,7 +115,7 @@ module top (
     end
 
 
-    // MUX ALUSrcB - selects betRegWriteen B register, constant 4,
+    // MUX ALUSrcB - selects between B register, constant 4,
     // and immediate extended
     always_comb begin
         unique case (ALUSrcB)
@@ -127,7 +132,7 @@ module top (
         unique case (PCSrc_select)         
             2'b00: pc_next = ALUResult;             // PC+4 for Fetch 
             2'b01: pc_next = ALUOut;                // for branching
-            2'b10: pc_next = ALUOut;
+            2'b10: pc_next = {ALUResult[31:1], 1'b0}; // for AUIPC
 
             default: pc_next = ALUResult;
         endcase
@@ -139,7 +144,8 @@ module top (
         2'b00: wd = ALUResult_reg;  // ALU Result
         2'b01: wd = Mem_reg;        // memory
         2'b10: wd = pc_plus_4_reg;  // Next instruction
-        default: wd = ALUResult_reg;
+        2'b11: wd = ALUOut; // AUIPC
+        default: wd = 32'd0;
     endcase
     end
 
@@ -193,7 +199,7 @@ module top (
 
     // Extend Unit
     extend u_extend (
-        .instr  (instr),
+        .instr  (IR),
         .immsrc (immsrc),
         .immext (immext)
     );

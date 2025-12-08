@@ -39,7 +39,7 @@ module instr_decoder(
                 immsrc = 3'b100;
 
             default:
-                immsrc = 3'bxxx;
+                immsrc = 3'b000;
         endcase
     end
 

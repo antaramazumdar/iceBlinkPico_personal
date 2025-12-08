@@ -221,9 +221,10 @@ module control_unit (
 
                 else if (JAL || JALR) begin
                     ALUSrcA = (JAL) ? 2'b00 : 2'b01; // pc or rs1
-                    ALUSrcB = 2'b10; // imm
+                    ALUSrcB = 2'b10; // immext
                     ALUOp   = 4'b0000; // ADD
                     PCWrite = 1;
+                    PCSrc_select = (JAL) ? 2'b01 : 2'b10;
                 end
 
                 else if (LUI) begin
@@ -251,6 +252,10 @@ module control_unit (
                     else if (JAL || JALR) begin
                         WB_select = 2'b10; // pc+4
                     end
+                    else if (AUIPC) begin
+                        WB_select = 2'b11; // ALUOut (pc + immext computed in DECODE)
+                    end
+
                     else begin
                         WB_select = 2'b00; // ALU
                     end
