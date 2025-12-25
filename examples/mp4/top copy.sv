@@ -132,7 +132,7 @@ module top (
         unique case (PCSrc_select)         
             2'b00: pc_next = ALUResult;             // PC+4 for Fetch 
             2'b01: pc_next = ALUOut;                // for branching
-            2'b10: pc_next = {ALUResult[31:1], 1'b0}; // for AUIPC
+            2'b10: pc_next = {ALUOut[31:1], 1'b0}; // for AUIPC
 
             default: pc_next = ALUResult;
         endcase
